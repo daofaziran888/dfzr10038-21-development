@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.rejection_seed import REJECTION_TABLES
 from app.seed import SEED_ROWS
 
 
@@ -14,9 +15,13 @@ class Store:
         self._tables: dict[str, list[dict[str, Any]]] = {
             name: [dict(row) for row in rows] for name, rows in SEED_ROWS.items()
         }
+        # 逐行拒绝归因子域的表，与通用模块表分开维护但共用同一仓库入口。
+        for name, rows in REJECTION_TABLES.items():
+            self._tables[name] = [dict(row) for row in rows]
 
     def module_names(self) -> list[str]:
-        return sorted(self._tables)
+        # qc_* 是逐行拒绝归因子域的内部表，由独立工作台消费，不计入通用模块清单。
+        return sorted(name for name in self._tables if not name.startswith("qc_"))
 
     def rows(self, module: str) -> list[dict[str, Any]]:
         return self._tables.setdefault(module, [])
